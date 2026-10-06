@@ -14,6 +14,7 @@ function Home() {
         <>
           <h2>Welcome, {user.name}</h2>
           <p>Role: {user.role}</p>
+<Link to="/dashboard">Go to Dashboard</Link>
 <button
   onClick={() => {
     localStorage.removeItem("token");
@@ -96,13 +97,60 @@ function Login() {
     </div>
   );
 }
+function Dashboard() {
+  const [profile, setProfile] = useState(null);
+  const [error, setError] = useState("");
 
+  const loadProfile = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await axios.get(
+        "http://localhost:5000/api/protected/profile",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setProfile(response.data.user);
+    } catch (error) {
+      setError("Protected API access failed");
+    }
+  };
+
+  return (
+    <div className="app">
+      <h1>AI-SIIRCA Dashboard</h1>
+
+      <button onClick={loadProfile}>
+        Load Protected Profile
+      </button>
+
+      {profile && (
+        <>
+          <h2>
+  Welcome, {JSON.parse(localStorage.getItem("user"))?.name}
+</h2>
+          <p>Email: {profile.email}</p>
+          <p>Role: {profile.role}</p>
+        </>
+      )}
+
+      {error && <p>{error}</p>}
+
+      <Link to="/">Back to Home</Link>
+    </div>
+  );
+}
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
+<Route path="/dashboard" element={<Dashboard />} />
       </Routes>
     </BrowserRouter>
   );
