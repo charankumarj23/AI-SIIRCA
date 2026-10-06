@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useState } from "react";
+import SecurityEvents from "./SecurityEvents.jsx";
 import "./App.css";
 
 function Home() {
@@ -14,16 +15,16 @@ function Home() {
         <>
           <h2>Welcome, {user.name}</h2>
           <p>Role: {user.role}</p>
-<Link to="/dashboard">Go to Dashboard</Link>
-<button
-  onClick={() => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    window.location.href = "/login";
-  }}
->
-  Logout
-</button>
+          <Link to="/dashboard">Go to Dashboard</Link>
+          <button
+            onClick={() => {
+              localStorage.removeItem("token");
+              localStorage.removeItem("user");
+              window.location.href = "/login";
+            }}
+          >
+            Logout
+          </button>
         </>
       ) : (
         <>
@@ -97,6 +98,7 @@ function Login() {
     </div>
   );
 }
+
 function Dashboard() {
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState("");
@@ -131,8 +133,8 @@ function Dashboard() {
       {profile && (
         <>
           <h2>
-  Welcome, {JSON.parse(localStorage.getItem("user"))?.name}
-</h2>
+            Welcome, {JSON.parse(localStorage.getItem("user"))?.name}
+          </h2>
           <p>Email: {profile.email}</p>
           <p>Role: {profile.role}</p>
         </>
@@ -140,17 +142,20 @@ function Dashboard() {
 
       {error && <p>{error}</p>}
 
+      <Link to="/security-events">View Security Events</Link>
       <Link to="/">Back to Home</Link>
     </div>
   );
 }
+
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
-<Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/security-events" element={<SecurityEvents />} />
       </Routes>
     </BrowserRouter>
   );
