@@ -5,6 +5,7 @@ const normalizeEvent = require("../normalization/normalizeEvent");
 const noiseReducer = require("../noise-reduction/noiseReducer");
 const analyzeRisk = require("../risk-analysis/riskAnalyzer");
 const correlateEvents = require("../event-correlation/eventCorrelator");
+const createIncident = require("../incident-management/incidentManager");
 
 const router = express.Router();
 
@@ -58,6 +59,39 @@ const correlationResult = correlateEvents(
   normalizedEvent,
   recentEventsResult.rows
 );
+
+const incident = createIncident([
+  normalizedEvent,
+  ...correlationResult.relatedEvents
+]);
+if (incident) {
+  await pool.query(
+    `INSERT INTO incidents
+    (
+      incident_key,
+      title,
+      severity,
+      status,
+      primary_user,
+      primary_source_ip,
+      event_count,
+      related_event_ids,
+      risk_score
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+    [
+      incident.incidentKey,
+      incident.title,
+      incident.severity,
+      incident.status,
+      incident.primaryUser,
+      incident.primarySourceIp,
+      incident.eventCount,
+      incident.relatedEventIds,
+      incident.riskScore
+    ]
+  );
+}
 
 const {
   event_type,

@@ -5,6 +5,7 @@ require("dotenv").config();
 const usersRoutes = require("./routes/users");
 const protectedRoutes = require("./routes/protected");
 const securityEventsRoutes = require("./routes/securityEvents");
+const incidentsRoutes = require("./routes/incidents");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -19,6 +20,7 @@ app.get("/", (req, res) => {
 app.use("/api/users", usersRoutes);
 app.use("/api/protected", protectedRoutes);
 app.use("/api/security-events", securityEventsRoutes);
+app.use("/api/incidents", incidentsRoutes);
 
 app.listen(PORT, () => {
   console.log(`AI-SIIRCA backend running on port ${PORT}`);
