@@ -1,7 +1,15 @@
-import { BrowserRouter, Routes, Route, Link, useNavigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Link,
+  useNavigate,
+} from "react-router-dom";
 import axios from "axios";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SecurityEvents from "./SecurityEvents.jsx";
+import IncidentDashboard from "./IncidentDashboard.jsx";
+import IncidentInvestigation from "./IncidentInvestigation.jsx";
 import "./App.css";
 
 function Home() {
@@ -16,6 +24,7 @@ function Home() {
           <h2>Welcome, {user.name}</h2>
           <p>Role: {user.role}</p>
           <Link to="/dashboard">Go to Dashboard</Link>
+
           <button
             onClick={() => {
               localStorage.removeItem("token");
@@ -100,15 +109,21 @@ function Login() {
 }
 
 function Dashboard() {
-  const [profile, setProfile] = useState(null);
+  const user = JSON.parse(localStorage.getItem("user"));
+
+  const [incidents, setIncidents] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const loadProfile = async () => {
+  const loadIncidents = async () => {
     try {
+      setLoading(true);
+      setError("");
+
       const token = localStorage.getItem("token");
 
       const response = await axios.get(
-        "http://localhost:5000/api/protected/profile",
+        "http://localhost:5000/api/incidents",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -116,34 +131,110 @@ function Dashboard() {
         }
       );
 
-      setProfile(response.data.user);
+      setIncidents(response.data);
     } catch (error) {
-      setError("Protected API access failed");
+      setError(
+        error.response?.data?.error || "Failed to load incidents"
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
+  useEffect(() => {
+    loadIncidents();
+  }, []);
+
+  const totalIncidents = incidents.length;
+
+  const criticalCount = incidents.filter(
+    (incident) =>
+      (incident.severity || "").toLowerCase() === "critical"
+  ).length;
+
+  const highRiskCount = incidents.filter(
+    (incident) =>
+      (incident.severity || "").toLowerCase() === "high"
+  ).length;
+
+  const activeCount = incidents.filter(
+    (incident) =>
+      (incident.status || "").toLowerCase() !== "resolved"
+  ).length;
+
   return (
-    <div className="app">
-      <h1>AI-SIIRCA Dashboard</h1>
+    <div className="soc-layout">
+      <aside className="soc-sidebar">
+        <h2>AI-SIIRCA</h2>
 
-      <button onClick={loadProfile}>
-        Load Protected Profile
-      </button>
+        <nav>
+          <Link to="/dashboard">Dashboard</Link>
+          <Link to="/incidents">Incidents</Link>
+          <Link to="/security-events">Security Events</Link>
+        </nav>
 
-      {profile && (
-        <>
-          <h2>
-            Welcome, {JSON.parse(localStorage.getItem("user"))?.name}
-          </h2>
-          <p>Email: {profile.email}</p>
-          <p>Role: {profile.role}</p>
-        </>
-      )}
+        <button
+          onClick={() => {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            window.location.href = "/login";
+          }}
+        >
+          Logout
+        </button>
+      </aside>
 
-      {error && <p>{error}</p>}
+      <main className="soc-main">
+        <div className="soc-header">
+          <div>
+            <h1>Security Operations Center</h1>
+            <p>AI-Assisted Security Incident Investigation</p>
+          </div>
 
-      <Link to="/security-events">View Security Events</Link>
-      <Link to="/">Back to Home</Link>
+          <div className="user-info">
+            <strong>{user?.name}</strong>
+            <span>{user?.role}</span>
+          </div>
+        </div>
+
+        {error && <p className="dashboard-error">{error}</p>}
+
+        <div className="soc-cards">
+          <div className="soc-card">
+            <span>Total Incidents</span>
+            <strong>{loading ? "--" : totalIncidents}</strong>
+          </div>
+
+          <div className="soc-card">
+            <span>Critical</span>
+            <strong>{loading ? "--" : criticalCount}</strong>
+          </div>
+
+          <div className="soc-card">
+            <span>High Risk</span>
+            <strong>{loading ? "--" : highRiskCount}</strong>
+          </div>
+
+          <div className="soc-card">
+            <span>Active Investigations</span>
+            <strong>{loading ? "--" : activeCount}</strong>
+          </div>
+        </div>
+
+        <div className="soc-panel">
+          <h2>Incident Investigation</h2>
+
+          <p>
+            Investigate security incidents using timeline reconstruction,
+            attack relationships, root-cause analysis and AI investigation
+            guidance.
+          </p>
+
+          <Link to="/incidents" className="soc-action">
+            Open Incident Dashboard
+          </Link>
+        </div>
+      </main>
     </div>
   );
 }
@@ -155,6 +246,9 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/incidents" element={<IncidentDashboard />} />
+        <Route path="/incidents/:id" element={<IncidentInvestigation />}
+/>
         <Route path="/security-events" element={<SecurityEvents />} />
       </Routes>
     </BrowserRouter>
