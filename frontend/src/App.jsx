@@ -5,6 +5,17 @@ import {
   Link,
   useNavigate,
 } from "react-router-dom";
+
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from "recharts";
+
 import axios from "axios";
 import { useEffect, useState } from "react";
 import SecurityEvents from "./SecurityEvents.jsx";
@@ -134,7 +145,8 @@ function Dashboard() {
       setIncidents(response.data);
     } catch (error) {
       setError(
-        error.response?.data?.error || "Failed to load incidents"
+        error.response?.data?.error ||
+          "Failed to load incidents"
       );
     } finally {
       setLoading(false);
@@ -152,26 +164,77 @@ function Dashboard() {
       (incident.severity || "").toLowerCase() === "critical"
   ).length;
 
-  const highRiskCount = incidents.filter(
+  const highCount = incidents.filter(
     (incident) =>
       (incident.severity || "").toLowerCase() === "high"
   ).length;
 
-  const activeCount = incidents.filter(
+  const mediumCount = incidents.filter(
+    (incident) =>
+      (incident.severity || "").toLowerCase() === "medium"
+  ).length;
+
+  const openCount = incidents.filter(
     (incident) =>
       (incident.status || "").toLowerCase() !== "resolved"
   ).length;
 
+  const resolvedCount = incidents.filter(
+    (incident) =>
+      (incident.status || "").toLowerCase() === "resolved"
+  ).length;
+
+  const maxSeverityCount = Math.max(
+    criticalCount,
+    highCount,
+    mediumCount,
+    1
+  );
+
+  const recentIncidents = incidents.slice(0, 5);
+  const severityData = [
+    {
+      name: "Critical",
+      incidents: criticalCount,
+    },
+    {
+      name: "High",
+      incidents: highCount,
+    },
+    {
+      name: "Medium",
+      incidents: mediumCount,
+    },
+    {
+      name: "Low",
+      incidents: incidents.filter(
+        (incident) =>
+          (incident.severity || "").toLowerCase() === "low"
+      ).length,
+    },
+  ];
+  
   return (
     <div className="soc-layout">
       <aside className="soc-sidebar">
-        <h2>AI-SIIRCA</h2>
+        <div className="sidebar-brand">
+          <h2>AI-SIIRCA</h2>
+          <span>SECURITY PLATFORM</span>
+        </div>
 
         <nav>
           <Link to="/dashboard">Dashboard</Link>
           <Link to="/incidents">Incidents</Link>
-          <Link to="/security-events">Security Events</Link>
+          <Link to="/security-events">
+            Security Events
+          </Link>
         </nav>
+
+        <div className="sidebar-user">
+          <span>Logged in as</span>
+          <strong>{user?.name || "Analyst"}</strong>
+          <small>{user?.role || "analyst"}</small>
+        </div>
 
         <button
           onClick={() => {
@@ -187,53 +250,273 @@ function Dashboard() {
       <main className="soc-main">
         <div className="soc-header">
           <div>
-            <h1>Security Operations Center</h1>
-            <p>AI-Assisted Security Incident Investigation</p>
+            <span className="soc-eyebrow">
+              SECURITY OPERATIONS CENTER
+            </span>
+
+            <h1>Threat Monitoring Dashboard</h1>
+
+            <p>
+              Real-time security incident monitoring,
+              investigation and response.
+            </p>
           </div>
 
-          <div className="user-info">
-            <strong>{user?.name}</strong>
-            <span>{user?.role}</span>
+          <div className="soc-user-badge">
+            <strong>{user?.name || "Analyst"}</strong>
+            <span>{user?.role || "analyst"}</span>
           </div>
         </div>
 
-        {error && <p className="dashboard-error">{error}</p>}
+        {error && (
+          <div className="dashboard-error">
+            {error}
+          </div>
+        )}
 
         <div className="soc-cards">
           <div className="soc-card">
             <span>Total Incidents</span>
-            <strong>{loading ? "--" : totalIncidents}</strong>
+            <strong>
+              {loading ? "--" : totalIncidents}
+            </strong>
+            <small>All detected incidents</small>
           </div>
 
-          <div className="soc-card">
+          <div className="soc-card critical-card">
             <span>Critical</span>
-            <strong>{loading ? "--" : criticalCount}</strong>
+            <strong>
+              {loading ? "--" : criticalCount}
+            </strong>
+            <small>Immediate attention</small>
           </div>
 
-          <div className="soc-card">
+          <div className="soc-card high-card">
             <span>High Risk</span>
-            <strong>{loading ? "--" : highRiskCount}</strong>
+            <strong>
+              {loading ? "--" : highCount}
+            </strong>
+            <small>Requires investigation</small>
+          </div>
+
+          <div className="soc-card active-card">
+            <span>Open Investigations</span>
+            <strong>
+              {loading ? "--" : openCount}
+            </strong>
+            <small>Currently active</small>
           </div>
 
           <div className="soc-card">
-            <span>Active Investigations</span>
-            <strong>{loading ? "--" : activeCount}</strong>
+            <span>Resolved</span>
+            <strong>
+              {loading ? "--" : resolvedCount}
+            </strong>
+            <small>Closed incidents</small>
           </div>
         </div>
 
-        <div className="soc-panel">
-          <h2>Incident Investigation</h2>
+        <div className="dashboard-grid">
+          <section className="dashboard-panel">
+            <div className="panel-heading">
+              <div>
+                <span className="panel-label">
+                  THREAT OVERVIEW
+                </span>
+                <h2>Severity Distribution</h2>
+              </div>
+            </div>
 
-          <p>
-            Investigate security incidents using timeline reconstruction,
-            attack relationships, root-cause analysis and AI investigation
-            guidance.
-          </p>
+            <div className="severity-chart">
+              <div className="severity-row">
+                <div className="severity-row-label">
+                  <span>Critical</span>
+                  <strong>{criticalCount}</strong>
+                </div>
 
-          <Link to="/incidents" className="soc-action">
-            Open Incident Dashboard
-          </Link>
+                <div className="severity-bar">
+                  <div
+                    className="severity-fill critical-fill"
+                    style={{
+                      width: `${
+                        (criticalCount /
+                          maxSeverityCount) *
+                        100
+                      }%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="severity-row">
+                <div className="severity-row-label">
+                  <span>High</span>
+                  <strong>{highCount}</strong>
+                </div>
+
+                <div className="severity-bar">
+                  <div
+                    className="severity-fill high-fill"
+                    style={{
+                      width: `${
+                        (highCount /
+                          maxSeverityCount) *
+                        100
+                      }%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="severity-row">
+                <div className="severity-row-label">
+                  <span>Medium</span>
+                  <strong>{mediumCount}</strong>
+                </div>
+
+                <div className="severity-bar">
+                  <div
+                    className="severity-fill medium-fill"
+                    style={{
+                      width: `${
+                        (mediumCount /
+                          maxSeverityCount) *
+                        100
+                      }%`,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="dashboard-panel">
+            <div className="panel-heading">
+              <div>
+                <span className="panel-label">
+                  LIVE STATUS
+                </span>
+                <h2>Investigation Health</h2>
+              </div>
+            </div>
+
+            <div className="health-grid">
+              <div>
+                <strong>{openCount}</strong>
+                <span>Open</span>
+              </div>
+
+              <div>
+                <strong>{resolvedCount}</strong>
+                <span>Resolved</span>
+              </div>
+
+              <div>
+                <strong>{criticalCount}</strong>
+                <span>Critical</span>
+              </div>
+
+              <div>
+                <strong>{totalIncidents}</strong>
+                <span>Total</span>
+              </div>
+            </div>
+
+            <Link
+              to="/incidents"
+              className="dashboard-primary-action"
+            >
+              Open Incident Queue →
+            </Link>
+          </section>
         </div>
+
+        <section className="dashboard-panel recent-panel">
+          <div className="panel-heading">
+            <div>
+              <span className="panel-label">
+                INCIDENT ACTIVITY
+              </span>
+              <h2>Recent Security Incidents</h2>
+            </div>
+
+            <Link to="/incidents">
+              View all →
+            </Link>
+          </div>
+
+          {loading ? (
+            <div className="dashboard-empty">
+              Loading incident activity...
+            </div>
+          ) : recentIncidents.length === 0 ? (
+            <div className="dashboard-empty">
+              No incidents detected.
+            </div>
+          ) : (
+            <div className="recent-incidents">
+              {recentIncidents.map((incident) => (
+                <Link
+                  key={incident.id}
+                  to={`/incidents/${incident.id}`}
+                  className="recent-incident"
+                >
+                  <div>
+                    <strong>
+                      {incident.incident_key}
+                    </strong>
+
+                    <span>
+                      {incident.title}
+                    </span>
+                  </div>
+
+                  <div className="recent-incident-meta">
+                    <span>
+                      {incident.primary_source_ip ||
+                        "Unknown IP"}
+                    </span>
+
+                    <span>
+                      Risk {incident.risk_score}/100
+                    </span>
+
+                    <span>
+                      {incident.status}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="dashboard-panel security-pipeline">
+          <div className="panel-heading">
+            <div>
+              <span className="panel-label">
+                DETECTION PIPELINE
+              </span>
+              <h2>AI-SIIRCA Security Analysis Flow</h2>
+            </div>
+          </div>
+
+          <div className="pipeline">
+            <span>Events</span>
+            <b>→</b>
+            <span>Normalize</span>
+            <b>→</b>
+            <span>Noise Reduction</span>
+            <b>→</b>
+            <span>Risk Analysis</span>
+            <b>→</b>
+            <span>Correlation</span>
+            <b>→</b>
+            <span>Incident</span>
+            <b>→</b>
+            <span>Investigation</span>
+          </div>
+        </section>
       </main>
     </div>
   );
