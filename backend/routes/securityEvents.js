@@ -1,6 +1,7 @@
 const express = require("express");
 const pool = require("../database/db");
 const authenticateToken = require("../middleware/auth");
+const normalizeEvent = require("../normalization/normalizeEvent");
 
 const router = express.Router();
 
@@ -23,16 +24,18 @@ router.get("/", authenticateToken, async (req, res) => {
 
 router.post("/", authenticateToken, async (req, res) => {
   try {
-    const {
-      event_type,
-      source,
-      source_ip,
-      destination_ip,
-      username,
-      severity,
-      message,
-      event_timestamp
-    } = req.body;
+    const normalizedEvent = normalizeEvent(req.body);
+
+const {
+  event_type,
+  source,
+  source_ip,
+  destination_ip,
+  username,
+  severity,
+  message,
+  event_timestamp
+} = normalizedEvent;
 
     if (!event_type) {
       return res.status(400).json({
