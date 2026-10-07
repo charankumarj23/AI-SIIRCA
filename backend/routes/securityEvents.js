@@ -2,6 +2,7 @@ const express = require("express");
 const pool = require("../database/db");
 const authenticateToken = require("../middleware/auth");
 const normalizeEvent = require("../normalization/normalizeEvent");
+const noiseReducer = require("../noise-reduction/noiseReducer");
 
 const router = express.Router();
 
@@ -25,6 +26,26 @@ router.get("/", authenticateToken, async (req, res) => {
 router.post("/", authenticateToken, async (req, res) => {
   try {
     const normalizedEvent = normalizeEvent(req.body);
+    const recentEventsResult = await pool.query(
+  `SELECT *
+   FROM security_events
+   WHERE event_timestamp >= CURRENT_TIMESTAMP - INTERVAL '5 minutes'
+   ORDER BY event_timestamp DESC`
+);
+
+const noiseResult = noiseReducer(
+  normalizedEvent,
+  recentEventsResult.rows
+);
+
+if (noiseResult.isNoise) {
+  return res.status(200).json({
+    message: "Duplicate security event detected",
+    noise: true,
+    reason: noiseResult.reason,
+    duplicateOf: noiseResult.duplicateOf
+  });
+}
 
 const {
   event_type,
