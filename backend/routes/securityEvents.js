@@ -4,6 +4,7 @@ const authenticateToken = require("../middleware/auth");
 const normalizeEvent = require("../normalization/normalizeEvent");
 const noiseReducer = require("../noise-reduction/noiseReducer");
 const analyzeRisk = require("../risk-analysis/riskAnalyzer");
+const correlateEvents = require("../event-correlation/eventCorrelator");
 
 const router = express.Router();
 
@@ -53,6 +54,11 @@ normalizedEvent.risk_score = riskResult.riskScore;
 normalizedEvent.risk_level = riskResult.riskLevel;
 normalizedEvent.risk_reasons = riskResult.reasons;
 
+const correlationResult = correlateEvents(
+  normalizedEvent,
+  recentEventsResult.rows
+);
+
 const {
   event_type,
   source,
@@ -83,9 +89,15 @@ const {
     event_timestamp,
     risk_score,
     risk_level,
-    risk_reasons
+    risk_reasons,
+    correlation_count,
+    correlated_event_ids
   )
-  VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8, CURRENT_TIMESTAMP), $9, $10, $11)
+  VALUES (
+    $1, $2, $3, $4, $5, $6, $7,
+    COALESCE($8, CURRENT_TIMESTAMP),
+    $9, $10, $11, $12, $13
+  )
   RETURNING *`,
   [
     event_type,
@@ -98,7 +110,9 @@ const {
     event_timestamp || null,
     riskResult.riskScore,
     riskResult.riskLevel,
-    riskResult.reasons
+    riskResult.reasons,
+    correlationResult.correlationCount,
+    correlationResult.relatedEvents.map((event) => event.id)
   ]
 );
 
