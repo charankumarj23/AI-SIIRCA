@@ -3,6 +3,7 @@ const pool = require("../database/db");
 const authenticateToken = require("../middleware/auth");
 const normalizeEvent = require("../normalization/normalizeEvent");
 const noiseReducer = require("../noise-reduction/noiseReducer");
+const analyzeRisk = require("../risk-analysis/riskAnalyzer");
 
 const router = express.Router();
 
@@ -46,6 +47,11 @@ if (noiseResult.isNoise) {
     duplicateOf: noiseResult.duplicateOf
   });
 }
+const riskResult = analyzeRisk(normalizedEvent);
+
+normalizedEvent.risk_score = riskResult.riskScore;
+normalizedEvent.risk_level = riskResult.riskLevel;
+normalizedEvent.risk_reasons = riskResult.reasons;
 
 const {
   event_type,
@@ -64,31 +70,37 @@ const {
       });
     }
 
-    const result = await pool.query(
-      `INSERT INTO security_events
-      (
-        event_type,
-        source,
-        source_ip,
-        destination_ip,
-        username,
-        severity,
-        message,
-        event_timestamp
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8, CURRENT_TIMESTAMP))
-      RETURNING *`,
-      [
-        event_type,
-        source,
-        source_ip,
-        destination_ip,
-        username,
-        severity || "low",
-        message,
-        event_timestamp || null
-      ]
-    );
+   const result = await pool.query(
+  `INSERT INTO security_events
+  (
+    event_type,
+    source,
+    source_ip,
+    destination_ip,
+    username,
+    severity,
+    message,
+    event_timestamp,
+    risk_score,
+    risk_level,
+    risk_reasons
+  )
+  VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8, CURRENT_TIMESTAMP), $9, $10, $11)
+  RETURNING *`,
+  [
+    event_type,
+    source,
+    source_ip,
+    destination_ip,
+    username,
+    severity || "low",
+    message,
+    event_timestamp || null,
+    riskResult.riskScore,
+    riskResult.riskLevel,
+    riskResult.reasons
+  ]
+);
 
     res.status(201).json(result.rows[0]);
   } catch (error) {
