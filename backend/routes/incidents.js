@@ -3,6 +3,7 @@ const pool = require("../database/db");
 const authenticateToken = require("../middleware/auth");
 const buildTimeline = require("../timeline-reconstruction/timelineBuilder");
 const buildAttackGraph = require("../attack-graph/attackGraphBuilder");
+const analyzeRootCause = require("../root-cause/rootCauseAnalyzer");
 
 const router = express.Router();
 
@@ -33,6 +34,7 @@ router.get("/", authenticateToken, async (req, res) => {
 
       incident.timeline = buildTimeline(eventsResult.rows);
       incident.attackGraph = buildAttackGraph(eventsResult.rows);
+      incident.rootCause = analyzeRootCause(eventsResult.rows);
     }
 
     return res.json(incidents);
