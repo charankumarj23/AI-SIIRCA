@@ -4,6 +4,7 @@ const authenticateToken = require("../middleware/auth");
 const buildTimeline = require("../timeline-reconstruction/timelineBuilder");
 const buildAttackGraph = require("../attack-graph/attackGraphBuilder");
 const analyzeRootCause = require("../root-cause/rootCauseAnalyzer");
+const generateInvestigationGuidance = require("../ai-investigation/investigationAssistant");
 
 const router = express.Router();
 
@@ -35,6 +36,7 @@ router.get("/", authenticateToken, async (req, res) => {
       incident.timeline = buildTimeline(eventsResult.rows);
       incident.attackGraph = buildAttackGraph(eventsResult.rows);
       incident.rootCause = analyzeRootCause(eventsResult.rows);
+      incident.investigationGuidance = generateInvestigationGuidance(incident);
     }
 
     return res.json(incidents);
